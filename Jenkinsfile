@@ -1,32 +1,31 @@
 pipeline {
-    agent none   // no global agent; each stage picks its own node
+    agent none
 
     stages {
-        stage('Checkout (Master)') {
-            agent { label 'master' }   // or the label of your controller
+        stage('Checkout on Master') {
+            agent { label 'master' }   // Built-In Node
             steps {
-                echo "Checking out from GitHub on master..."
+                echo "Checking out code on master..."
                 checkout scm
+                stash name: 'source', includes: '**/*'
             }
         }
 
-        stage('Build & Run on Agent') {
-            agent { label 'build-agent' }  // <-- change to your slave/agent label
+        stage('Build on Agent') {
+            agent { label 'agent' }   // your agent node
             steps {
-                echo "Running build on agent node..."
-                // For Windows agent:
+                echo "Building on agent..."
+                unstash 'source'
                 bat 'build.bat'
-                // For Linux agent use:
-                // sh 'chmod +x build.sh && ./build.sh'
             }
         }
 
-        stage('Archive Artifact (Master)') {
-            agent { label 'master' }
+        stage('Archive') {
+            agent { label 'agent' }
             steps {
-                echo "Archiving artifacts on master..."
-                archiveArtifacts artifacts: 'out/**', fingerprint: true
+                archiveArtifacts artifacts: 'out/**,artifact.txt', fingerprint: true
             }
         }
     }
 }
+
